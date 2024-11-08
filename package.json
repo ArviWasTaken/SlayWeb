@@ -4,10 +4,11 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "start": "web-dev-server --node-resolve --open --watch --root-dir dist"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@web/dev-server": "^0.4.6",
     "typescript": "^5.5.3"
   },
   "private": true
