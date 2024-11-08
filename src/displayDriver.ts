@@ -13,21 +13,24 @@ export class DisplayDriver {
 
     // zoom vars
     zoomLevel: ZoomLevels;
-    lastScrollTop: number;
+
+    gridData = new Vector(10, 10);
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
-        this.dragging = false;
-        this.camOffset = new Vector(0, 0);
-        this.lastReceivedPoint = new Vector(0, 0);
-
-        this.zoomLevel = ZoomLevels.Normal
-        this.lastScrollTop = 0;
-
         this.setElementToScreenSize();
         this.initEventListeners();
+
+        this.dragging = false;
+        this.zoomLevel = ZoomLevels.In
+        this.lastReceivedPoint = new Vector(0, 0);
+
+        this.camOffset = new Vector(
+            canvas.width / 2 - this.gridData.x / 2 * this.hexWidth(),
+            canvas.height / 2 - this.gridData.y / 2 * this.hexHeight()
+        );
     }
 
     setElementToScreenSize() {
@@ -102,39 +105,60 @@ export class DisplayDriver {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawBackground();
-        this.drawGrid(new Vector(50, 50));
+        this.drawGrid();
+
+        this.ctx.beginPath();
+        this.ctx.lineTo(this.canvas.width / 2, 0);
+        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+        this.ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.lineTo(0, this.canvas.height / 2);
+        this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+        this.ctx.stroke();
         requestAnimationFrame(() => this.draw())
     }
 
-    drawGrid(size: Vector) {
-        let rowNumber = 0;
-        for (let y = this.zoomLevel * Math.sin(this.a); rowNumber< size.y; y += this.zoomLevel * (2 * Math.sin(this.a))) {
-            let columnNumber = 0;
-            for (let x = this.zoomLevel;
-                 columnNumber < size.x;
-                 x += this.zoomLevel * (1 + Math.cos(this.a)),
-                     y += (-1) ** columnNumber++ * this.zoomLevel * Math.sin(this.a)
-            ) {
-                if (columnNumber == 0 || columnNumber == size.x - 1 || rowNumber == 0 || rowNumber == size.y - 1)
-                {
-                    this.hex(new Vector(x, y));
+    drawGrid() {
+        for (let y = 0; y < this.gridData.y; y++) {
+            for (let x = 0; x < this.gridData.x; x++) {
+                if (x == 0 || x == this.gridData.x - 1 || y == 0 || y == this.gridData.y - 1) {
+                    this.hex(new Vector(x, y))
                 }
             }
-            rowNumber++;
         }
     }
 
-    hex(centre: Vector) {
+    hex(fieldGridCoords: Vector) {
+        const centre = new Vector(
+            this.camOffset.x +                                              // x cam offset
+              this.zoomLevel +                                              // centre of first column
+              fieldGridCoords.x *this.hexWidth(),                           // amount of columns * the width of a hex
+
+            this.camOffset.y +                                              // y cam offset
+              this.zoomLevel * Math.sin(this.a) +                           // centre of first row
+              fieldGridCoords.y * this.hexHeight() +                        // amount of rows * the height of a hex
+              ((-1) ** fieldGridCoords.x > 0 ? this.hexHeight() * 0.5 : 0 ) // if row is even offset by half a hex
+        );
+
         this.ctx.beginPath();
         for (let i = 0; i < 6; i++) {
             this.ctx.lineTo(
-                this.camOffset.x + centre.x + this.zoomLevel * Math.cos(this.a * i),
-                this.camOffset.y + centre.y + this.zoomLevel * Math.sin(this.a * i))
+               centre.x + this.zoomLevel * Math.cos(this.a * i),
+               centre.y + this.zoomLevel * Math.sin(this.a * i))
             ;
         }
         this.ctx.closePath();
         this.ctx.fillStyle = "green";
+        this.ctx.strokeText(`${fieldGridCoords.x}`, centre.x, centre.y);
         this.ctx.fill();
         this.ctx.stroke();
+    }
+
+    hexWidth() {
+        return (this.zoomLevel * (1 + Math.cos(this.a)));
+    }
+
+    hexHeight() {
+        return (this.zoomLevel * 2 * Math.sin(this.a));
     }
 }

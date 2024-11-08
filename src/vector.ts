@@ -17,6 +17,10 @@ export class Vector {
         return new Vector(this.x + other.x, this.y + other.y);
     }
 
+    multiply(multiplier: number): Vector {
+        return new Vector(this.x * multiplier, this.y * multiplier);
+    }
+
     findAngleTowards(other: Vector) {
         return Math.atan2(other.y - this.y, other.x - this.x) * 180 / Math.PI;
     }
