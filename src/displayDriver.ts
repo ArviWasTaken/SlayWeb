@@ -50,6 +50,9 @@ export class DisplayDriver {
         addEventListener("pointerup", () => this.dragging = false);
         addEventListener("pointerdown", () => this.dragging = true);
         addEventListener("wheel", (e) => {
+            const location = new Vector(e.offsetX, e.offsetY);
+            const hexesLeftLocation = location.subtract(this.camOffset).x / this.hexWidth();
+            const hexesAboveLocation = location.subtract(this.camOffset).y / this.hexHeight();
             if (e.deltaY > 0) {
                 switch (this.zoomLevel) {
                     case ZoomLevels.In:
@@ -73,6 +76,10 @@ export class DisplayDriver {
                         break;
                 }
             }
+            this.camOffset = new Vector(
+                location.x - hexesLeftLocation * this.hexWidth(),
+                location.y - hexesAboveLocation * this.hexHeight()
+            );
         });
     }
 
