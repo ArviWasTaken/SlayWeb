@@ -15,7 +15,7 @@ export class DisplayDriver {
     // zoom vars
     zoomLevel: ZoomLevels;
 
-    gridData = new Vector(10, 10);
+    gridData = Vector.Value(10);
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -26,7 +26,7 @@ export class DisplayDriver {
 
         this.dragging = false;
         this.zoomLevel = ZoomLevels.In
-        this.lastReceivedPoint = new Vector(0, 0);
+        this.lastReceivedPoint = Vector.Zero();
 
         this.camOffset = new Vector(
             canvas.width / 2 - this.gridData.x / 2 * this.hexWidth(),

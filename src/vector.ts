@@ -16,4 +16,12 @@ export class Vector {
     add(other: Vector) {
         return new Vector(this.x + other.x, this.y + other.y);
     }
+
+    static Zero() {
+        return new Vector(0,0);
+    }
+
+    static Value(x: number) {
+        return new Vector(x,x);
+    }
 }
