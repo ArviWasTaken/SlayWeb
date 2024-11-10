@@ -133,9 +133,7 @@ export class DisplayDriver {
     drawGrid() {
         for (let y = 0; y < this.gridData.y; y++) {
             for (let x = 0; x < this.gridData.x; x++) {
-                if (x == 0 || x == this.gridData.x - 1 || y == 0 || y == this.gridData.y - 1) {
-                    this.hex(new Vector(x, y))
-                }
+                this.hex(new Vector(x, y))
             }
         }
     }
@@ -144,7 +142,7 @@ export class DisplayDriver {
         const centre = new Vector(
             this.camOffset.x +                                              // x cam offset
               this.zoomLevel +                                              // centre of first column
-              fieldGridCoords.x * this.hexWidth(),                           // amount of columns * the width of a hex
+              fieldGridCoords.x * this.hexWidth(),                          // amount of columns * the width of a hex
 
             this.camOffset.y +                                              // y cam offset
               this.zoomLevel * Math.sin(this.a) +                           // centre of first row
