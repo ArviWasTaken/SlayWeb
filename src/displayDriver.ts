@@ -2,6 +2,7 @@ import {Vector} from "./vector.js";
 import {ZoomLevels} from "./enums.js";
 
 export class DisplayDriver {
+    debug: boolean = false;
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
     a: number = 2 * Math.PI / 6;
@@ -114,14 +115,18 @@ export class DisplayDriver {
         this.drawBackground();
         this.drawGrid();
 
-        this.ctx.beginPath();
-        this.ctx.lineTo(this.canvas.width / 2, 0);
-        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
-        this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.lineTo(0, this.canvas.height / 2);
-        this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
-        this.ctx.stroke();
+        if (this.debug) {
+            // Draw cross lines
+            this.ctx.beginPath();
+            this.ctx.lineTo(this.canvas.width / 2, 0);
+            this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+            this.ctx.stroke();
+            this.ctx.beginPath();
+            this.ctx.lineTo(0, this.canvas.height / 2);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+            this.ctx.stroke();
+        }
+
         requestAnimationFrame(() => this.draw())
     }
 
@@ -139,7 +144,7 @@ export class DisplayDriver {
         const centre = new Vector(
             this.camOffset.x +                                              // x cam offset
               this.zoomLevel +                                              // centre of first column
-              fieldGridCoords.x *this.hexWidth(),                           // amount of columns * the width of a hex
+              fieldGridCoords.x * this.hexWidth(),                           // amount of columns * the width of a hex
 
             this.camOffset.y +                                              // y cam offset
               this.zoomLevel * Math.sin(this.a) +                           // centre of first row
@@ -156,7 +161,6 @@ export class DisplayDriver {
         }
         this.ctx.closePath();
         this.ctx.fillStyle = "green";
-        this.ctx.strokeText(`${fieldGridCoords.x}`, centre.x, centre.y);
         this.ctx.fill();
         this.ctx.stroke();
     }
