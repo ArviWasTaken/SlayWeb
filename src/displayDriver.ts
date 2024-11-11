@@ -1,5 +1,6 @@
-import {Vector} from "./vector.js";
-import {ZoomLevels} from "./enums.js";
+import {Vector} from "./vector";
+import {ZoomLevels} from "./enums";
+import {Hex} from "./hex";
 
 export class DisplayDriver {
     debug: boolean = false;
@@ -15,11 +16,9 @@ export class DisplayDriver {
     // zoom vars
     zoomLevel: ZoomLevels;
 
-    gridData = Vector.Value(10);
-
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, worldSize: Vector) {
         this.canvas = canvas;
-        this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+        this.ctx = ctx;
 
         this.setElementToScreenSize();
         this.initEventListeners();
@@ -29,8 +28,8 @@ export class DisplayDriver {
         this.lastReceivedPoint = Vector.Zero();
 
         this.camOffset = new Vector(
-            canvas.width / 2 - this.gridData.x / 2 * this.hexWidth(),
-            canvas.height / 2 - this.gridData.y / 2 * this.hexHeight()
+            canvas.width / 2 - (worldSize.x / 2) * this.hexWidth(),
+            canvas.height / 2 - (worldSize.y / 2) * this.hexHeight()
         );
     }
 
@@ -52,7 +51,7 @@ export class DisplayDriver {
         addEventListener("pointerdown", () => this.dragging = true);
         addEventListener("wheel", (e) => {
             const location = new Vector(e.offsetX, e.offsetY);
-            const hexesLeftLocation = location.subtract(this.camOffset).x / this.hexWidth();
+            const hexesLeftOfLocation = location.subtract(this.camOffset).x / this.hexWidth();
             const hexesAboveLocation = location.subtract(this.camOffset).y / this.hexHeight();
             if (e.deltaY > 0) {
                 switch (this.zoomLevel) {
@@ -78,7 +77,7 @@ export class DisplayDriver {
                 }
             }
             this.camOffset = new Vector(
-                location.x - hexesLeftLocation * this.hexWidth(),
+                location.x - hexesLeftOfLocation * this.hexWidth(),
                 location.y - hexesAboveLocation * this.hexHeight()
             );
         });
@@ -110,12 +109,13 @@ export class DisplayDriver {
         ctx.bezierCurveTo(38, y + 15, 38, y, 50, y);
     }
 
-    draw() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.drawBackground();
-        this.drawGrid();
+    drawGrid(hexes: Hex[]) {
+        for (const hex in hexes) {
+            this.hex(hexes[hex])
+        }
+    }
 
-        if (this.debug) {
+    drawDebug() {
             // Draw cross lines
             this.ctx.beginPath();
             this.ctx.lineTo(this.canvas.width / 2, 0);
@@ -125,29 +125,18 @@ export class DisplayDriver {
             this.ctx.lineTo(0, this.canvas.height / 2);
             this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
             this.ctx.stroke();
-        }
-
-        requestAnimationFrame(() => this.draw())
     }
 
-    drawGrid() {
-        for (let y = 0; y < this.gridData.y; y++) {
-            for (let x = 0; x < this.gridData.x; x++) {
-                this.hex(new Vector(x, y))
-            }
-        }
-    }
-
-    hex(fieldGridCoords: Vector) {
+    hex(hex: Hex) {
         const centre = new Vector(
             this.camOffset.x +                                              // x cam offset
               this.zoomLevel +                                              // centre of first column
-              fieldGridCoords.x * this.hexWidth(),                          // amount of columns * the width of a hex
+              hex.gridLocation.x * this.hexWidth(),                          // amount of columns * the width of a hex
 
             this.camOffset.y +                                              // y cam offset
               this.zoomLevel * Math.sin(this.a) +                           // centre of first row
-              fieldGridCoords.y * this.hexHeight() +                        // amount of rows * the height of a hex
-              ((-1) ** fieldGridCoords.x > 0 ? this.hexHeight() * 0.5 : 0 ) // if row is even offset by half a hex
+            hex.gridLocation.y * this.hexHeight() +                        // amount of rows * the height of a hex
+              ((-1) ** hex.gridLocation.x > 0 ? this.hexHeight() * 0.5 : 0 ) // if row is even offset by half a hex
         );
 
         this.ctx.beginPath();
@@ -158,7 +147,7 @@ export class DisplayDriver {
             ;
         }
         this.ctx.closePath();
-        this.ctx.fillStyle = "green";
+        this.ctx.fillStyle = hex.owner.color;
         this.ctx.fill();
         this.ctx.stroke();
     }
