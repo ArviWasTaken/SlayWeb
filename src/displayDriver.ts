@@ -16,9 +16,12 @@ export class DisplayDriver {
     // zoom vars
     zoomLevel: ZoomLevels;
 
+    worldSize: Vector;
+
     constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, worldSize: Vector) {
         this.canvas = canvas;
         this.ctx = ctx;
+        this.worldSize = worldSize;
 
         this.setElementToScreenSize();
         this.initEventListeners();
@@ -28,8 +31,8 @@ export class DisplayDriver {
         this.lastReceivedPoint = Vector.Zero();
 
         this.camOffset = new Vector(
-            canvas.width / 2 - (worldSize.x / 2) * this.hexWidth(),
-            canvas.height / 2 - (worldSize.y / 2) * this.hexHeight()
+            canvas.width / 2 - (this.worldSize.x / 2) * this.hexWidth(),
+            canvas.height / 2 - (this.worldSize.y / 2) * this.hexHeight()
         );
     }
 
@@ -109,12 +112,6 @@ export class DisplayDriver {
         ctx.bezierCurveTo(38, y + 15, 38, y, 50, y);
     }
 
-    drawGrid(hexes: Hex[]) {
-        for (const hex in hexes) {
-            this.hex(hexes[hex])
-        }
-    }
-
     drawDebug() {
             // Draw cross lines
             this.ctx.beginPath();
@@ -127,29 +124,159 @@ export class DisplayDriver {
             this.ctx.stroke();
     }
 
-    hex(hex: Hex) {
+    drawGrid(hexes: Hex[]) {
+        for (let i = 0; i < hexes.length; i++) {
+            this.drawHex(hexes, i)
+        }
+    }
+
+    drawHex(hexes: Hex[], index: number) {
+        let hex = hexes[index];
         const centre = new Vector(
-            this.camOffset.x +                                              // x cam offset
-              this.zoomLevel +                                              // centre of first column
+            this.camOffset.x +                                               // x cam offset
+              this.zoomLevel +                                               // centre of first column
               hex.gridLocation.x * this.hexWidth(),                          // amount of columns * the width of a hex
 
-            this.camOffset.y +                                              // y cam offset
-              this.zoomLevel * Math.sin(this.a) +                           // centre of first row
-            hex.gridLocation.y * this.hexHeight() +                        // amount of rows * the height of a hex
+            this.camOffset.y +                                               // y cam offset
+              this.zoomLevel * Math.sin(this.a) +                            // centre of first row
+            hex.gridLocation.y * this.hexHeight() +                          // amount of rows * the height of a hex
               ((-1) ** hex.gridLocation.x > 0 ? this.hexHeight() * 0.5 : 0 ) // if row is even offset by half a hex
         );
 
-        this.ctx.beginPath();
+        let points: Vector[] = [];
         for (let i = 0; i < 6; i++) {
-            this.ctx.lineTo(
+            points.push(new Vector(
                centre.x + this.zoomLevel * Math.cos(this.a * i),
                centre.y + this.zoomLevel * Math.sin(this.a * i))
-            ;
+            );
+        }
+        this.drawHexFilling(points, hex.owner.color);
+
+        const neighbours = this.getNeighbouringCellsForIndex(index)
+
+        console.log(`${neighbours[3]} ${neighbours[4]} ${neighbours[5]}\n  ${index}  \n${neighbours[2]} ${neighbours[1]} ${neighbours[0]}`);
+
+
+        // right bottom
+        this.drawHexSide(points[0], points[1], false);
+        // bottom
+        this.drawHexSide(points[1], points[2], true);
+        // left bottom
+        this.drawHexSide(points[2], points[3], false);
+        // left top
+        this.drawHexSide(points[3], points[4], false);
+        // top
+        this.drawHexSide(points[4], points[5], false);
+        // right top
+        this.drawHexSide(points[5], points[0], false);
+
+        this.ctx.strokeText(index.toString(), centre.x, centre.y);
+
+    }
+
+    // returns an array with the neighbours of the cell, null if it doesn't exist
+    // [right bottom, middle bottom, left bottom, left top, middle top, right top
+    getNeighbouringCellsForIndex(index: number)  {
+        const neighbours: [undefined | number | null, undefined | number | null, undefined | number | null, undefined | number | null, undefined | number | null, undefined | number | null] = [undefined, undefined, undefined, undefined, undefined, undefined];
+        const ws = this.worldSize
+        const lastRowStartIndex = ws.y * (ws.x - 1);
+
+        const isEven = index % 2 == 0;
+        const isInFirstRow = index < ws.x;
+        const isInLastRow = index >= lastRowStartIndex;
+        const isInFirstCol = index % ws.x == 0;
+        const isInLastCol = index != 0 && index % ws.x == ws.x - 1;
+
+        console.log(isEven, isInFirstRow, isInLastRow, isInFirstCol, isInLastCol);
+
+        // right bottom neighbour
+        if (isInLastCol) {
+            neighbours[0] = null;
+        } else if (isInLastRow && isEven) {
+            neighbours[0] = null;
+        } else if (isEven) {
+            neighbours[0] = index + 1 + ws.x;
+        } else {
+            neighbours[0]= index + 1;
+        }
+
+        //bottom neighbour
+        if (isInLastRow) {
+            neighbours[1] = null
+        } else {
+            neighbours[1] = index + ws.x;
+        }
+
+        // bottom left neighbour
+        if (isInFirstCol) {
+            neighbours[2] = null
+        } else if (isInLastRow && !isEven) {
+            neighbours[2] = null
+        } else if (isEven) {
+            neighbours[2] = index - 1 + ws.x;
+        } else {
+            neighbours[2] = index - 1;
+        }
+
+        // top left neighbour
+        if (isInFirstCol) {
+            neighbours[3] = null
+        } else if (isInFirstRow && !isEven) {
+            neighbours[3] = null;
+        } else if (isEven) {
+            neighbours[3] = index - 1;
+        } else {
+            neighbours[3] = index - 1 - ws.x;
+        }
+
+        // top neighbour
+        if (isInFirstRow) {
+            neighbours[4] = null
+        } else {
+            neighbours[4] = index - ws.x;
+        }
+
+        // top right neighbour
+        if (isInLastCol) {
+            neighbours[5] = null
+        } else if (isInFirstRow && !isEven) {
+            neighbours[5] = null;
+        } else if (isEven) {
+            neighbours[5] = index + 1;
+        } else {
+            neighbours[5] = index + 1 - ws.x;
+        }
+
+        return neighbours
+    }
+
+    drawHexFilling(points: Vector[], color: string) {
+        this.ctx.save();
+        this.ctx.beginPath();
+        for (const pointsKey in points) {
+            let point = points[pointsKey];
+            this.ctx.lineTo(point.x, point.y);
         }
         this.ctx.closePath();
-        this.ctx.fillStyle = hex.owner.color;
+        this.ctx.fillStyle = color;
         this.ctx.fill();
+        this.ctx.restore();
+    }
+
+    drawHexSide(begin: Vector, end: Vector, highlighted: boolean) {
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.lineTo(begin.x, begin.y);
+        this.ctx.lineTo(end.x, end.y);
+        this.ctx.closePath();
+
+        if (highlighted) {
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeStyle = "#cccde3";
+        }
         this.ctx.stroke();
+        this.ctx.restore();
+
     }
 
     hexWidth() {

@@ -14,7 +14,7 @@ export class Game {
     worldSize: Vector;
 
     constructor(canvas : HTMLCanvasElement, ctx: CanvasRenderingContext2D, debug: boolean) {
-        this.worldSize = new Vector(20, 20)
+        this.worldSize = new Vector(3, 3)
         this.canvas = canvas;
         this.ctx = ctx;
         this.displayDriver = new DisplayDriver(canvas, ctx, this.worldSize);
@@ -33,7 +33,7 @@ export class Game {
 
         for (let y = 0; y < this.worldSize.y; y++) {
             for (let x = 0; x < this.worldSize.x; x++) {
-                this.hexes.push(new Hex(new Vector(x, y), this.randomPlayer()))
+                this.hexes.push(new Hex(new Vector(x, y), this.players[0]));
             }
         }
     }
